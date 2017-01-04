@@ -2,11 +2,12 @@ from socket import * #importing the socket module
 from struct import * #importing the struct module
 from fallback import *  #importing clientTCP to make use of the packet object
 import time
-
+global debug
+debug = True
 cong_wdw = 1 #how many packets, slow start to 32
 exp = 0 #counter for slow start function
 ss_thresh =64 #cong_wdw must get to 63
-total_packets_sent = 0
+total_packets_sent = 0 
 packets_sent = 0
 def slow_start(num,exp): #function for congestion
 	if num < 32:
@@ -54,7 +55,8 @@ while True:
     
     if Router.check("ACKbit","2") & Router.check("ack_num","33"):
 	serverSocket.close()
-	print("The server has closed its socket")
+	if debug:
+		print("The server has closed its socket")
 	break
     elif Router.check("FINbit","1") & Router.check("seq_num","203"):
 	if shut_down == 1:
@@ -89,26 +91,37 @@ while True:
    
     elif speed_up == False:
 	print("here")
-	while total_packets_sent != 30:
+	while total_packets_sent != 31:
+		if debug:
+			pass
+			print(total_packets_sent)
 		cong_wdw = slow_start(cong_wdw,exp)
 		gets = []
 		while packets_sent != cong_wdw:
-			ack,clientaddr = serverSocket.recvfrom(2048)
-			print(ack)
-			int(ack)
-			Server.replace("ack_num",ack)
-			gets.append(ack)
+			Server,clientaddr = serverSocket.recvfrom(2048)
 			serverSocket.sendto(str(Server).encode(),clientaddr)
-
-	   	        packets_sent += 1				
+			
+			if total_packets_sent == 30:
+				total_packets_sent +=1
+				if debug:
+					print(total_packets_sent)
+				if total_packets_sent == 31:
+					if debug:
+						print(total_packets_sent)	
+					break
+			else:
+	   	        	packets_sent += 1		
+				
 			if packets_sent == cong_wdw:
 				
 				total_packets_sent += packets_sent
 				packets_sent = 0
-				if len(gets) == cong_wdw:
-					print("Got it")
-				else:
-					print("missing stuff")
-			break
-	serverSocket.sendto(str(Server).encode(),clientaddr)
+				print(total_packets_sent)
+				if debug:
+					print("Sent it")
+				break
+			
+			
+	if debug:
+		print("Got out I should be getting something  right?")
 	speed_up = True

@@ -1,6 +1,8 @@
 from socket import * #importing the socket module
 from struct import* #importing the sturct module
 from time import * #importing the time module
+global debug
+debug = True
 class TCP_Client_Header: #using class object to make TCP datagram header
 	
     class packet_field:# linked list implementation, easier to transfer list values into class object
@@ -160,21 +162,22 @@ if __name__ == "__main__":
 		clientSocket.sendto(str(Host).encode(),(serverName,9998))
 	else:
 		print("Didnt get it")
-
+	clientSocket.sendto(str(Host).encode(),(serverName,9998))
 
 	x = 1 # for 1st of 32 sent out below
 	y = 0
 	Client = Host # to send packets back and forth
 	Client.insert_packet(impt_field,impt_value)
 	clientSocket.sendto(str(Client).encode(),(serverName,9998))
-	while x != 34:
+	while x != 32:
 		x += 1
-		clientSocket.sendto(str(x),(serverName,9998))	
+		clientSocket.sendto(str(Client).encode(),(serverName,9998))
+		if debug:
+			print(x)	
 		message, serveraddr = clientSocket.recvfrom(2048)
-		Client.replace("ack_num",x)
-		print(str(x))
-	clientSocket.sendto(str(x),(serverName,9998))
-
+	clientSocket.sendto(str(Client).encode(),(serverName,9998))
+	if debug:
+		print("what now?")
 	message = str(message.decode())
 	Host.insert(message)
 	a,b = Host.steal_a_part("app_data")
