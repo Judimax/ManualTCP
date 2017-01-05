@@ -9,6 +9,9 @@ exp = 0 #counter for slow start function
 ss_thresh =64 #cong_wdw must get to 63
 total_packets_sent = 0 
 packets_sent = 0
+seq_num = 0
+timer = 1 #the timer for server to resend if client did not send acks in time
+UPS = [] # to send packets according to cong wdw
 def slow_start(num,exp): #function for congestion
 	if num < 32:
 		value = (2^(exp))*num
@@ -61,7 +64,7 @@ while True:
     elif Router.check("FINbit","1") & Router.check("seq_num","203"):
 	if shut_down == 1:
 		Router.replace("ACKbit",2)
-		Router.replace("ack_num",32)
+		Router.replace("ack_num",39)
 		serverSocket.sendto(str(Router).encode(),clientaddr)
 		print("The client is starting to close its socket")
 		print("The client can no longer send but receive data")
@@ -69,6 +72,10 @@ while True:
 		shut_down += 1
 		pass
 	else:
+		if debug:
+			#print("this is the val of shut_down")
+			#print(shut_down)
+			pass
 		Router.replace("FINbit",1)
 		Router.replace("seq_num",204)
 		serverSocket.sendto(str(Router).encode(),clientaddr)
@@ -90,38 +97,72 @@ while True:
     	serverSocket.sendto(str(Router).encode(),clientaddr)
    
     elif speed_up == False:
-	print("here")
-	while total_packets_sent != 31:
+	if debug:
+		print("here")
+	while total_packets_sent != 32:
+		
 		if debug:
+			#print(total_packets_sent)
 			pass
-			print(total_packets_sent)
 		cong_wdw = slow_start(cong_wdw,exp)
-		gets = []
+		if debug:
+			print("This is cong_wdw")
+			print(cong_wdw)
+
 		while packets_sent != cong_wdw:
-			Server,clientaddr = serverSocket.recvfrom(2048)
-			serverSocket.sendto(str(Server).encode(),clientaddr)
-			
-			if total_packets_sent == 30:
+			seq_num += 1
+			if debug:
+				#print("this number should be changing")
+				#print(cong_wdw)
+				pass
+			Server.replace('seq_num',seq_num)
+			UPS.append(str(Server))
+				
+			if total_packets_sent >=  30:
 				total_packets_sent +=1
+				serverSocket.sendto(str(Server).encode(),clientaddr)
+				
+				serverSocket.sendto(str(None).encode(),clientaddr)
 				if debug:
-					print(total_packets_sent)
-				if total_packets_sent == 31:
+					#print(total_packets_sent)
+					#print(Server.steal_a_part("ack_num",True))
+					pass
+				while True:
+					output,clientaddr =serverSocket.recvfrom(2048)
+					if output == "None":
+						break
+					Server.headptr = None
+					Server.insert(output)
 					if debug:
-						print(total_packets_sent)	
+						print(Server.steal_a_part("ack_num",True))	
+				if total_packets_sent == 32:
 					break
 			else:
 	   	        	packets_sent += 1		
-				
 			if packets_sent == cong_wdw:
-				
+				#print(len(UPS))
 				total_packets_sent += packets_sent
 				packets_sent = 0
-				print(total_packets_sent)
+				for i in UPS:
+					serverSocket.sendto(str(i).encode(),clientaddr)
+				serverSocket.sendto(str(None).encode(),clientaddr)
+				UPS = []
 				if debug:
-					print("Sent it")
+					#print("Sent it")
+					pass
+				while True:
+					output,clientaddr =serverSocket.recvfrom(2048)
+					if output == "None":
+						break
+					Server.headptr =None
+					Server.insert(output)
+					if debug:
+						print(Server.steal_a_part('ack_num',True))
 				break
 			
 			
 	if debug:
 		print("Got out I should be getting something  right?")
+		print(Server)
+		pass
 	speed_up = True

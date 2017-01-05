@@ -3,6 +3,7 @@ from struct import* #importing the sturct module
 from time import * #importing the time module
 global debug
 debug = True
+UPS = []
 class TCP_Client_Header: #using class object to make TCP datagram header
 	
     class packet_field:# linked list implementation, easier to transfer list values into class object
@@ -112,12 +113,14 @@ class TCP_Client_Header: #using class object to make TCP datagram header
 		z +=2
 	z = 0
 
-    def steal_a_part(self,header_field): #sends the transport in open and teardown
+    def steal_a_part(self,header_field,printer = False): #sends the transport in open and teardown also returns values for specific fields
 	x = 0
 	part = self.__str__()
 	part = part.split(",")
 	for i in range(len(part)):
 		if part[i] == header_field:
+			if printer:
+				return "This is the   " + str(header_field) + "%3s" %  part[i+1] 
 			value = part[i+1]
 			field = part[i] 
 			del part[i+1]
@@ -131,6 +134,8 @@ class TCP_Client_Header: #using class object to make TCP datagram header
 		x += 2
 	x = 0
 	return field,value
+
+		
   	
 if __name__ == "__main__":	
 	Host = TCP_Client_Header() # to set up and open teardown commands
@@ -168,32 +173,45 @@ if __name__ == "__main__":
 	y = 0
 	Client = Host # to send packets back and forth
 	Client.insert_packet(impt_field,impt_value)
-	clientSocket.sendto(str(Client).encode(),(serverName,9998))
-	while x != 32:
-		x += 1
-		clientSocket.sendto(str(Client).encode(),(serverName,9998))
-		if debug:
-			print(x)	
-		message, serveraddr = clientSocket.recvfrom(2048)
-	clientSocket.sendto(str(Client).encode(),(serverName,9998))
+	while x != 33:
+		while True:	
+			message, serveraddr = clientSocket.recvfrom(2048)
+			if message == "None":
+				break
+			Client.headptr = None
+			Client.insert(message)
+			if debug:
+				print(Client.steal_a_part("seq_num",True))
+				pass
+			
+			Client.replace("ack_num",x)
+			x += 1
+			UPS.append(str(Client))
+		print("\n")
+		for i in UPS:
+			clientSocket.sendto(str(i).encode(),(serverName,9998))
+		clientSocket.sendto(str(None).encode(),(serverName,9998))
+		UPS = []
 	if debug:
 		print("what now?")
-	message = str(message.decode())
-	Host.insert(message)
-	a,b = Host.steal_a_part("app_data")
+		pass
+	Host = Client
+	#a,b = Host.steal_a_part("app_data")
 	Host.replace("FINbit",1)
 	Host.replace("seq_num",203)
 	clientSocket.sendto(str(Host).encode(),(serverName,9998))
+	clientSocket.recvfrom
 	while Host.download == False:
 		
 		if Host.check("FINbit","1") & Host.check("seq_num","204"):
 			Host.replace("ack_num",33)
+			Host.replace("ACKbit",2)
 			clientSocket.sendto(str(Host).encode(),(serverName,9998))
 			print("The server is starting to close its socket")
 			clientSocket.close()
 			Host.download = True
 
-		elif Host.check("ACKbit","2") & Host.check ("ack_num","32"):
+		elif Host.check("ACKbit","2") & Host.check ("ack_num","39"):
 			clientSocket.sendto(str(Host).encode(),(serverName,9998))
 			print("Waiting for the server to close")
 		# closing the connection
