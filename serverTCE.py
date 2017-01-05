@@ -62,7 +62,7 @@ while True:
     elif Router.check("FINbit","1") & Router.check("seq_num","203"):
 	if shut_down == 1:
 		Router.replace("ACKbit",2)
-		Router.replace("ack_num",32)
+		Router.replace("ack_num",39)
 		serverSocket.sendto(str(Router).encode(),clientaddr)
 		print("The client is starting to close its socket")
 		print("The client can no longer send but receive data")
@@ -70,6 +70,10 @@ while True:
 		shut_down += 1
 		pass
 	else:
+		if debug:
+			#print("this is the val of shut_down")
+			#print(shut_down)
+			pass
 		Router.replace("FINbit",1)
 		Router.replace("seq_num",204)
 		serverSocket.sendto(str(Router).encode(),clientaddr)
@@ -94,8 +98,8 @@ while True:
 	print("here")
 	while total_packets_sent != 31:
 		if debug:
+			#print(total_packets_sent)
 			pass
-			print(total_packets_sent)
 		cong_wdw = slow_start(cong_wdw,exp)
 		gets = []
 		while packets_sent != cong_wdw:
@@ -113,14 +117,16 @@ while True:
 			if total_packets_sent == 30:
 				total_packets_sent +=1
 				if debug:
-					print(total_packets_sent)
+					#print(total_packets_sent)
+					print(Server.steal_a_part("ack_num",True))
 				if total_packets_sent == 31:
 					if debug:
-						print(total_packets_sent)	
+						#print(total_packets_sent)
+						print(Server.steal_a_part("ack_num",True))
 					break
 			else:
 	   	        	packets_sent += 1		
-				seq_num += 1
+			seq_num += 1
 			if packets_sent == cong_wdw:
 				
 				total_packets_sent += packets_sent
@@ -132,5 +138,9 @@ while True:
 			
 			
 	if debug:
-		print("Got out I should be getting something  right?")
+		#print("Got out I should be getting something  right?")
+		pass
+	Server.replace("seq_num",201)
+	Server.replace("ack_num",201)
+	serverSocket.sendto(str(Server).encode(),clientaddr)
 	speed_up = True

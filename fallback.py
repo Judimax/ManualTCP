@@ -172,7 +172,9 @@ if __name__ == "__main__":
 	y = 0
 	Client = Host # to send packets back and forth
 	Client.insert_packet(impt_field,impt_value)
+	Client.replace("ack_num",0)
 	clientSocket.sendto(str(Client).encode(),(serverName,9998))
+	Client.replace("ack_num",1)
 	while x != 32:
 		x += 1
 		clientSocket.sendto(str(Client).encode(),(serverName,9998))
@@ -198,16 +200,18 @@ if __name__ == "__main__":
 	Host.replace("FINbit",1)
 	Host.replace("seq_num",203)
 	clientSocket.sendto(str(Host).encode(),(serverName,9998))
+	clientSocket.recvfrom
 	while Host.download == False:
 		
 		if Host.check("FINbit","1") & Host.check("seq_num","204"):
 			Host.replace("ack_num",33)
+			Host.replace("ACKbit",2)
 			clientSocket.sendto(str(Host).encode(),(serverName,9998))
 			print("The server is starting to close its socket")
 			clientSocket.close()
 			Host.download = True
 
-		elif Host.check("ACKbit","2") & Host.check ("ack_num","32"):
+		elif Host.check("ACKbit","2") & Host.check ("ack_num","39"):
 			clientSocket.sendto(str(Host).encode(),(serverName,9998))
 			print("Waiting for the server to close")
 		# closing the connection
