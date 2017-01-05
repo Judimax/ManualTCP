@@ -112,12 +112,14 @@ class TCP_Client_Header: #using class object to make TCP datagram header
 		z +=2
 	z = 0
 
-    def steal_a_part(self,header_field): #sends the transport in open and teardown
+    def steal_a_part(self,header_field,printer = False): #sends the transport in open and teardown also returns values for specific fields
 	x = 0
 	part = self.__str__()
 	part = part.split(",")
 	for i in range(len(part)):
 		if part[i] == header_field:
+			if printer:
+				return "This is the   " + str(header_field) + "%3s" %  part[i+1] 
 			value = part[i+1]
 			field = part[i] 
 			del part[i+1]
@@ -131,6 +133,8 @@ class TCP_Client_Header: #using class object to make TCP datagram header
 		x += 2
 	x = 0
 	return field,value
+
+		
   	
 if __name__ == "__main__":	
 	Host = TCP_Client_Header() # to set up and open teardown commands
@@ -173,11 +177,21 @@ if __name__ == "__main__":
 		x += 1
 		clientSocket.sendto(str(Client).encode(),(serverName,9998))
 		if debug:
-			print(x)	
+			#print(x)
+			pass	
 		message, serveraddr = clientSocket.recvfrom(2048)
+		if debug:
+			#print(type(message))
+			pass
+		Client.headptr = None
+		Client.insert(message)
+		Client.replace("ack_num",x)
+		if debug:
+			print(Client.steal_a_part("seq_num",True))	
 	clientSocket.sendto(str(Client).encode(),(serverName,9998))
 	if debug:
-		print("what now?")
+		#print("what now?")
+		pass
 	message = str(message.decode())
 	Host.insert(message)
 	a,b = Host.steal_a_part("app_data")

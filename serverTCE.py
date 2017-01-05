@@ -9,6 +9,7 @@ exp = 0 #counter for slow start function
 ss_thresh =64 #cong_wdw must get to 63
 total_packets_sent = 0 
 packets_sent = 0
+seq_num = 0
 def slow_start(num,exp): #function for congestion
 	if num < 32:
 		value = (2^(exp))*num
@@ -98,7 +99,15 @@ while True:
 		cong_wdw = slow_start(cong_wdw,exp)
 		gets = []
 		while packets_sent != cong_wdw:
-			Server,clientaddr = serverSocket.recvfrom(2048)
+			output,clientaddr = serverSocket.recvfrom(2048)
+			if debug:
+				#print(type(output))
+				pass
+			Server.headptr = None
+			Server.insert(output)
+			if debug:
+				print(Server.steal_a_part("ack_num",True))
+			Server.replace('seq_num',seq_num)
 			serverSocket.sendto(str(Server).encode(),clientaddr)
 			
 			if total_packets_sent == 30:
@@ -111,7 +120,7 @@ while True:
 					break
 			else:
 	   	        	packets_sent += 1		
-				
+				seq_num += 1
 			if packets_sent == cong_wdw:
 				
 				total_packets_sent += packets_sent
