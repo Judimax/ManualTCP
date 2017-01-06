@@ -3,7 +3,7 @@ from struct import * #importing the struct module
 from fallback import *  #importing clientTCP to make use of the packet object
 import time
 global debug
-debug = True
+debug = False
 cong_wdw = 1 #how many packets, slow start to 32
 exp = 0 #counter for slow start function
 ss_thresh =64 #cong_wdw must get to 63
@@ -21,7 +21,8 @@ def slow_start(num,exp): #function for congestion
 	return value
 
 try:
-    source_port_num = 9998 #port number router will be receiving from
+
+    source_port_num = 9997 #port number router will be receiving from
     serverSocket = socket(AF_INET, SOCK_DGRAM) #handshake and connection type
     serverSocket.bind(('',source_port_num))
     print("The server is ready to receive")
@@ -30,6 +31,7 @@ except:
 
 Router = TCP_Client_Header() #to take care of setup and close commands
 Server = TCP_Client_Header() 
+gtep = TCP_Client_Header() #to find when server has sent enough packets
 shut_down = 0
 speed_up = True
 got_fst = True
@@ -48,7 +50,10 @@ while True:
 		output,clientaddr = serverSocket.recvfrom(2048)
 		Router.headptr= None
 		output = str(output)
-		Router.insert(output)
+		try:
+			Router.insert(output)
+		except:
+			pass
     	else:	
 		output,clientaddr = serverSocket.recvfrom(2048)
 		Server.headptr = None
@@ -96,17 +101,18 @@ while True:
     	serverSocket.sendto(str(Router).encode(),clientaddr)
    
     elif speed_up == False:
+	o = 0
 	if debug:
 		print("here")
-	while total_packets_sent != 32:
-		
+	while cong_wdw != 32:	
 		if debug:
 			#print(total_packets_sent)
 			pass
-		cong_wdw = slow_start(cong_wdw,exp)
+		cong_wdw =slow_start(cong_wdw,exp)
 		if debug:
 			print("This is cong_wdw")
 			print(cong_wdw)
+		#if Server.steal_a_part("ack_num",True,True) == 32:
 
 		while packets_sent != cong_wdw:
 			seq_num += 1
@@ -115,8 +121,10 @@ while True:
 				#print(cong_wdw)
 				pass
 			Server.replace('seq_num',seq_num)
-			UPS.append(str(Server))
-				
+			if seq_num <= 32:
+				UPS.append(str(Server))
+			
+			"""unnessecary conditional code
 			if total_packets_sent >=  30:
 				total_packets_sent +=1
 				Sent = time.time()
@@ -145,13 +153,15 @@ while True:
 						print(Server.steal_a_part("ack_num",True))	
 				if total_packets_sent == 32:
 					break
-			else:
-	   	        packets_sent += 1		
-			if packets_sent == cong_wdw #or if total_packets_sent >=31:
+			else:"""
+		#try to move  amount of code to move in emacs so
+			
+   	        	packets_sent += 1		
+			if packets_sent == cong_wdw or total_packets_sent >=31:
 				#print(len(UPS))
 				total_packets_sent += packets_sent
 				packets_sent = 0
-				for i in UPS:
+				for i in UPS: 			      
 					Sent = time.time()
 					serverSocket.sendto(str(i).encode(),clientaddr)
 				serverSocket.sendto(str(None).encode(),clientaddr)
@@ -167,17 +177,18 @@ while True:
 						break
 					Server.headptr =None
 					Server.insert(output)
-					if debug:
-						print(Elasped)
-						print(Server.steal_a_part('ack_num',True))
+					
+					print(Elasped)
+					print(Server.steal_a_part('ack_num',True))
 					if Elasped > 1:
 						print("It might not gotten the sequennce in time send again")
 						for i in UPS:
 							serverSocket.sendto(str(i).encode(),clientaddr)
 						serverSocket.sendto(str(i).encode(),clientaddr)
 					UPS = []
+							
+				#if Server.steal_a_part("ack_num",True,True) == 32:
 				break
-			
 			
 	if debug:
 		print("Got out I should be getting something  right?")

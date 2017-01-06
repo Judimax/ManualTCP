@@ -2,8 +2,9 @@ from socket import * #importing the socket module
 from struct import* #importing the sturct module
 import time  #importing the time module
 global debug
-debug = True
+debug = False
 UPS = []
+dest_port_num = 9997
 class TCP_Client_Header: #using class object to make TCP datagram header
 	
     class packet_field:# linked list implementation, easier to transfer list values into class object
@@ -150,7 +151,7 @@ if __name__ == "__main__":
 	Host.replace("SYNbit",1)
 	Host.replace("seq_num",200)
 	impt_field,impt_value = Host.steal_a_part("app_data")
-	clientSocket.sendto(str(Host).encode(),(serverName,9998))
+	clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 	Host.headptr = None
 	print("Asking to make a connection with the server")
 	#the answer part where server says its okay to recv
@@ -166,15 +167,17 @@ if __name__ == "__main__":
 	if get_i_answer & get_ii_answer & get_iii_answer:
 		print("The server has answered the client")
 		Host.replace("ack_num",202)
-		clientSocket.sendto(str(Host).encode(),(serverName,9998))
+		clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 	else:
 		print("Didnt get it")
-	clientSocket.sendto(str(Host).encode(),(serverName,9998))
+	clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 
 	x = 1 # for 1st of 32 sent out below
 	y = 0
 	z = 1 #keep tracks of sequence of packets sent
 	t = 0 #tester variable
+	limit = 0 #so it wont add twice off second flag
+	send_correct = False
 	Client = Host # to send packets back and forth
 	Client.insert_packet(impt_field,impt_value)
 	while x != 33: #so client can get extra ack if it did not get it in time
@@ -186,10 +189,13 @@ if __name__ == "__main__":
 			Client.headptr = None
 			Client.insert(message)
 			bill.append(Client.steal_a_part("seq_num",True,True))
+			
 			if bill[0] < y:
 				print("We didn't sent the acks in time")
 				y -= z
 				x -= z
+				
+			
 			Client.replace("ack_num",x)
 			x += 1
 			z += 1
@@ -200,18 +206,21 @@ if __name__ == "__main__":
 		print("\n")
 		y += z #for getting the right seq_num from packets
 		z = 0
-		if debug:
-			print("this is the shipment we got")
-			print(bill)	
+		
+		print("this is the shipment we got")
+		print(bill)
+		if debug:	
 			print("this is y")
 			print(y)
+			print(" this is x")
+			print(x)
 		for i in UPS:
 			if t == 0 and i == UPS[-1]:# It works server sends packets again
-				time.sleep(5)
+				time.sleep(1)
 				t += 1
 				pass
-			clientSocket.sendto(str(i).encode(),(serverName,9998))
-		clientSocket.sendto(str(None).encode(),(serverName,9998))
+			clientSocket.sendto(str(i).encode(),(serverName,dest_port_num))
+		clientSocket.sendto(str(None).encode(),(serverName,dest_port_num))
 		UPS = []
 		t = 0
 	if debug:
@@ -221,27 +230,27 @@ if __name__ == "__main__":
 	#a,b = Host.steal_a_part("app_data")
 	Host.replace("FINbit",1)
 	Host.replace("seq_num",203)
-	clientSocket.sendto(str(Host).encode(),(serverName,9998))
+	clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 	clientSocket.recvfrom
 	while Host.download == False:
 		
 		if Host.check("FINbit","1") & Host.check("seq_num","204"):
 			Host.replace("ack_num",33)
 			Host.replace("ACKbit",2)
-			clientSocket.sendto(str(Host).encode(),(serverName,9998))
+			clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 			print("The server is starting to close its socket")
 			clientSocket.close()
 			Host.download = True
 
 		elif Host.check("ACKbit","2") & Host.check ("ack_num","39"):
-			clientSocket.sendto(str(Host).encode(),(serverName,9998))
+			clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 			print("Waiting for the server to close")
 		# closing the connection
 
 		elif Host.check("seq_num","201") & Host.check("ACKbit","1") & Host.check("ack_num","201"):
 			Host.replace("FINbit",1)
 			Host.replace("seq_num",203)
-			clientSocket.sendto(str(Host).encode(),(serverName,9998))
+			clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 			print("The server is starting to close its connection")
 		
 		if Host.download == False:
