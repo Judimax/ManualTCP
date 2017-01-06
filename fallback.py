@@ -1,6 +1,6 @@
 from socket import * #importing the socket module
 from struct import* #importing the sturct module
-from time import * #importing the time module
+import time  #importing the time module
 global debug
 debug = True
 UPS = []
@@ -113,13 +113,15 @@ class TCP_Client_Header: #using class object to make TCP datagram header
 		z +=2
 	z = 0
 
-    def steal_a_part(self,header_field,printer = False): #sends the transport in open and teardown also returns values for specific fields
+    def steal_a_part(self,header_field,printer = False,retval = False): #sends the transport in open and teardown also returns values for specific fields
 	x = 0
 	part = self.__str__()
 	part = part.split(",")
 	for i in range(len(part)):
 		if part[i] == header_field:
 			if printer:
+				if retval:
+					return int(part[i+1])
 				return "This is the   " + str(header_field) + "%3s" %  part[i+1] 
 			value = part[i+1]
 			field = part[i] 
@@ -171,27 +173,47 @@ if __name__ == "__main__":
 
 	x = 1 # for 1st of 32 sent out below
 	y = 0
+	z = 1 #keep tracks of sequence of packets sent
+	t = 0 #tester variable
 	Client = Host # to send packets back and forth
 	Client.insert_packet(impt_field,impt_value)
-	while x != 33:
+	while x != 33: #so client can get extra ack if it did not get it in time
+		bill = []
 		while True:	
 			message, serveraddr = clientSocket.recvfrom(2048)
 			if message == "None":
 				break
 			Client.headptr = None
 			Client.insert(message)
-			if debug:
-				print(Client.steal_a_part("seq_num",True))
-				pass
-			
+			bill.append(Client.steal_a_part("seq_num",True,True))
+			if bill[0] < y:
+				print("We didn't sent the acks in time")
+				y -= z
+				x -= z
 			Client.replace("ack_num",x)
 			x += 1
+			z += 1
 			UPS.append(str(Client))
+			if debug:
+				#print(Client.steal_a_part("seq_num",True))
+				pass
 		print("\n")
+		y += z #for getting the right seq_num from packets
+		z = 0
+		if debug:
+			print("this is the shipment we got")
+			print(bill)	
+			print("this is y")
+			print(y)
 		for i in UPS:
+			if t == 0 and i == UPS[-1]:# It works server sends packets again
+				time.sleep(5)
+				t += 1
+				pass
 			clientSocket.sendto(str(i).encode(),(serverName,9998))
 		clientSocket.sendto(str(None).encode(),(serverName,9998))
 		UPS = []
+		t = 0
 	if debug:
 		print("what now?")
 		pass
@@ -226,5 +248,12 @@ if __name__ == "__main__":
 			message, serveraddr = clientSocket.recvfrom(2048)
 			message = message.decode()
 			message = str(message)
+			if debug:
+				#print("What I got from the server")
+				#print(message)
+				pass
 			Host.headptr = None
-                        Host.insert(message)
+			try:
+				Host.insert(message)
+			except:
+				pass

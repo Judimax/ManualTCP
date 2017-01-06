@@ -40,7 +40,6 @@ while True:
 	Router.headptr = None #so it can make way for new data that is coming in
 	output = str(output)# so string can be inserted uniforminly with insert method
 	Router.insert(output)
-	print(str(Router))
 	got_fst = False
 	
     else:
@@ -120,6 +119,8 @@ while True:
 				
 			if total_packets_sent >=  30:
 				total_packets_sent +=1
+				Sent = time.time()
+				
 				serverSocket.sendto(str(Server).encode(),clientaddr)
 				
 				serverSocket.sendto(str(None).encode(),clientaddr)
@@ -129,40 +130,56 @@ while True:
 					pass
 				while True:
 					output,clientaddr =serverSocket.recvfrom(2048)
+					Received = time.time()
+					Elasped = Received - Sent
+					if Elasped > 1:
+						print("It might not got the packets send again")
+						serverSocket.sendto(str(Server).encode(),clientaddr)
+						serverSocket.sendto(str(None).encode(),clientaddr)
 					if output == "None":
 						break
 					Server.headptr = None
 					Server.insert(output)
 					if debug:
+						print(Elasped)
 						print(Server.steal_a_part("ack_num",True))	
 				if total_packets_sent == 32:
 					break
 			else:
-	   	        	packets_sent += 1		
-			if packets_sent == cong_wdw:
+	   	        packets_sent += 1		
+			if packets_sent == cong_wdw #or if total_packets_sent >=31:
 				#print(len(UPS))
 				total_packets_sent += packets_sent
 				packets_sent = 0
 				for i in UPS:
+					Sent = time.time()
 					serverSocket.sendto(str(i).encode(),clientaddr)
 				serverSocket.sendto(str(None).encode(),clientaddr)
-				UPS = []
+				
 				if debug:
 					#print("Sent it")
 					pass
 				while True:
 					output,clientaddr =serverSocket.recvfrom(2048)
+					Received = time.time()
+					Elasped = Received - Sent
 					if output == "None":
 						break
 					Server.headptr =None
 					Server.insert(output)
 					if debug:
+						print(Elasped)
 						print(Server.steal_a_part('ack_num',True))
+					if Elasped > 1:
+						print("It might not gotten the sequennce in time send again")
+						for i in UPS:
+							serverSocket.sendto(str(i).encode(),clientaddr)
+						serverSocket.sendto(str(i).encode(),clientaddr)
+					UPS = []
 				break
 			
 			
 	if debug:
 		print("Got out I should be getting something  right?")
-		print(Server)
-		pass
-                speed_up = True
+		#print(Server)
+	speed_up = True
