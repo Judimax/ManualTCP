@@ -173,56 +173,71 @@ if __name__ == "__main__":
 	clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 
 	x = 1 # for 1st of 32 sent out below
-	y = 0
+	y = 0 # keeps track of appropriate seq_num
 	z = 1 #keep tracks of sequence of packets sent
 	t = 0 #tester variable
 	limit = 0 #so it wont add twice off second flag
 	send_correct = False
+	package_note = False
 	Client = Host # to send packets back and forth
 	Client.insert_packet(impt_field,impt_value)
-	while x != 33: #so client can get extra ack if it did not get it in time
-		bill = []
+	finish_data = 0
+	bill = []
+	while finish_data != 32: #so client can get extra ack if it did not get it in time
+
 		while True:	
 			message, serveraddr = clientSocket.recvfrom(2048)
 			if message == "None":
 				break
 			Client.headptr = None
 			Client.insert(message)
-			bill.append(Client.steal_a_part("seq_num",True,True))
-			
-			if bill[0] < y:
-				print("We didn't sent the acks in time")
-				y -= z
-				x -= z
-				
-			
+			current_data = Client.steal_a_part("seq_num",True,True)
+			bill.append(current_data)
 			Client.replace("ack_num",x)
 			x += 1
 			z += 1
 			UPS.append(str(Client))
-			if debug:
-				#print(Client.steal_a_part("seq_num",True))
-				pass
+
 		print("\n")
+		print("This is the shipment we got from the server")
+		print(bill)
+		if debug:
+			print("x")
+			print(x)
+			print("y")
+			print(y)
+			print("z")
+			print(z)
+			print("finish_data")
+			print(finish_data)
+		if bill[0] < finish_data:
+			print("We didn't send the acks in time")
+			UPS = []
+			for e in bill:
+				Client.replace("ack_num",e)
+				UPS.append(str(Client))
+			x -= len(bill)
+
+		finish_data = Client.steal_a_part("seq_num",True,True)
+		bill = []
 		y += z #for getting the right seq_num from packets
 		z = 0
 		
-		print("this is the shipment we got")
-		print(bill)
 		if debug:	
 			print("this is y")
 			print(y)
 			print(" this is x")
 			print(x)
 		for i in UPS:
-			if t == 0 and i == UPS[-1]:# It works server sends packets again
+			if t == 0 and i == UPS[-2]:# It works server sends packets again
 				time.sleep(1)
 				t += 1
 				pass
 			clientSocket.sendto(str(i).encode(),(serverName,dest_port_num))
 		clientSocket.sendto(str(None).encode(),(serverName,dest_port_num))
 		UPS = []
-		t = 0
+		bill = []
+
 	if debug:
 		print("what now?")
 		pass
@@ -237,6 +252,7 @@ if __name__ == "__main__":
 		if Host.check("FINbit","1") & Host.check("seq_num","204"):
 			Host.replace("ack_num",33)
 			Host.replace("ACKbit",2)
+
 			clientSocket.sendto(str(Host).encode(),(serverName,dest_port_num))
 			print("The server is starting to close its socket")
 			clientSocket.close()

@@ -101,94 +101,59 @@ while True:
     	serverSocket.sendto(str(Router).encode(),clientaddr)
    
     elif speed_up == False:
-	o = 0
+	Sent = 0
+	Received =0
+	t_times = [0]
+	resend = False
 	if debug:
 		print("here")
 	while cong_wdw != 32:	
+	
 		if debug:
-			#print(total_packets_sent)
 			pass
-		cong_wdw =slow_start(cong_wdw,exp)
-		if debug:
+
+		for i in t_times:
+			if i > 1:
+				print("Client didn't get it gotta resend")
+				resend = True
+				break
+		else:
+			UPS = []
+			cong_wdw = slow_start(cong_wdw,exp)
 			print("This is cong_wdw")
 			print(cong_wdw)
-		#if Server.steal_a_part("ack_num",True,True) == 32:
-
-		while packets_sent != cong_wdw:
-			seq_num += 1
-			if debug:
-				#print("this number should be changing")
-				#print(cong_wdw)
-				pass
-			Server.replace('seq_num',seq_num)
-			if seq_num <= 32:
-				UPS.append(str(Server))
-			
-			"""unnessecary conditional code
-			if total_packets_sent >=  30:
-				total_packets_sent +=1
+			while packets_sent != cong_wdw:	
+				seq_num += 1
+				Server.replace('seq_num',seq_num)
+				if seq_num <= 32:
+					UPS.append(str(Server))
+   	        			packets_sent += 1
+				else:
+					break	
+	
+		if packets_sent == cong_wdw or total_packets_sent >=31 or resend or len(UPS) != 0:
+			resend = False
+			total_packets_sent += packets_sent
+			packets_sent = 0
+			for i in UPS: 			      
 				Sent = time.time()
+				serverSocket.sendto(str(i).encode(),clientaddr)
+			serverSocket.sendto(str(None).encode(),clientaddr)
 				
-				serverSocket.sendto(str(Server).encode(),clientaddr)
-				
-				serverSocket.sendto(str(None).encode(),clientaddr)
-				if debug:
-					#print(total_packets_sent)
-					#print(Server.steal_a_part("ack_num",True))
-					pass
-				while True:
-					output,clientaddr =serverSocket.recvfrom(2048)
-					Received = time.time()
-					Elasped = Received - Sent
-					if Elasped > 1:
-						print("It might not got the packets send again")
-						serverSocket.sendto(str(Server).encode(),clientaddr)
-						serverSocket.sendto(str(None).encode(),clientaddr)
-					if output == "None":
-						break
-					Server.headptr = None
-					Server.insert(output)
-					if debug:
-						print(Elasped)
-						print(Server.steal_a_part("ack_num",True))	
-				if total_packets_sent == 32:
+			t_times = []
+
+			while True:
+				output,clientaddr =serverSocket.recvfrom(2048)
+				Received = time.time()
+				Elasped = Received - Sent
+				if output == "None":
 					break
-			else:"""
-		#try to move  amount of code to move in emacs so
-			
-   	        	packets_sent += 1		
-			if packets_sent == cong_wdw or total_packets_sent >=31:
-				#print(len(UPS))
-				total_packets_sent += packets_sent
-				packets_sent = 0
-				for i in UPS: 			      
-					Sent = time.time()
-					serverSocket.sendto(str(i).encode(),clientaddr)
-				serverSocket.sendto(str(None).encode(),clientaddr)
-				
-				if debug:
-					#print("Sent it")
-					pass
-				while True:
-					output,clientaddr =serverSocket.recvfrom(2048)
-					Received = time.time()
-					Elasped = Received - Sent
-					if output == "None":
-						break
-					Server.headptr =None
-					Server.insert(output)
+				t_times.append(Elasped)
+				Server.headptr =None
+				Server.insert(output)
 					
-					print(Elasped)
-					print(Server.steal_a_part('ack_num',True))
-					if Elasped > 1:
-						print("It might not gotten the sequennce in time send again")
-						for i in UPS:
-							serverSocket.sendto(str(i).encode(),clientaddr)
-						serverSocket.sendto(str(i).encode(),clientaddr)
-					UPS = []
-							
-				#if Server.steal_a_part("ack_num",True,True) == 32:
-				break
+				print(Elasped)
+				print(Server.steal_a_part('ack_num',True))			
 			
 	if debug:
 		print("Got out I should be getting something  right?")
