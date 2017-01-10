@@ -179,64 +179,113 @@ if __name__ == "__main__":
 	limit = 0 #so it wont add twice off second flag
 	send_correct = False
 	package_note = False
+	Sent = 0
+	Received = 0
+	t_times = [0]
 	Client = Host # to send packets back and forth
 	Client.insert_packet(impt_field,impt_value)
 	finish_data = 0
 	bill = []
+	resend = False
+	missing_note = False
 	while finish_data != 32: #so client can get extra ack if it did not get it in time
-
-		while True:	
-			message, serveraddr = clientSocket.recvfrom(2048)
-			if message == "None":
-				break
-			Client.headptr = None
-			Client.insert(message)
-			current_data = Client.steal_a_part("seq_num",True,True)
-			bill.append(current_data)
-			Client.replace("ack_num",x)
-			x += 1
-			z += 1
-			UPS.append(str(Client))
-
 		print("\n")
-		print("This is the shipment we got from the server")
-		print(bill)
-		if debug:
-			print("x")
-			print(x)
-			print("y")
-			print(y)
-			print("z")
-			print(z)
-			print("finish_data")
-			print(finish_data)
-		if bill[0] < finish_data:
-			print("We didn't send the acks in time")
-			UPS = []
-			for e in bill:
-				Client.replace("ack_num",e)
-				UPS.append(str(Client))
-			x -= len(bill)
+		print("this is counter i must get here")
+		print(finish_data)
+		resend = False
+		if resend:
+			print("yeah set me to false plz")
+			continue
 
-		finish_data = Client.steal_a_part("seq_num",True,True)
-		bill = []
-		y += z #for getting the right seq_num from packets
-		z = 0
+		else:
+			for i in range(len(t_times)):
+				if finish_data == 32:
+					break
+				if t_times[i] > 2:
+					missing_note = True
+					t_times = []
+					print("The server didn't send the sequence in time send again")
+					while missing_note:							
+						for j in range(3):
+							Sent = time.time()
+							clientSocket.sendto(str(UPS[i]).encode(),(serverName,dest_port_num))
+						clientSocket.sendto(str(None).encode(),(serverName,dest_port_num))
+						bill =[]
+						while True:
+							message,serveraddr = clientSocket.recvfrom(2048)
+							Received = time.time()
+							if message == "None":
+								break
+							Elasped = Received - Sent
+							t_times.append(Elasped)
+							Client.headtr = None
+							Client.insert(message)
+							bill.append(Client.steal_a_part("seq_num",True,True))
+						missing_note =False
+					
+					print("These are the resent times")
+					print(t_times)					
+					print("this is the resent package we got")
+					print(bill)
+		  			break
+				else:
+					UPS = []
+					resend = False
+					t_times = []
+					bill = []
+					Start = time.time()
+					while finish_data != 32:
+						
+						message, serveraddr = clientSocket.recvfrom(2048)
+						Received = time.time()	
+								
+						if message == "None":
+							break
+						Client.headptr = None
+						Client.insert(message)
+						current_data = Client.steal_a_part("seq_num",True,True)
+						Elapsed = Received - Start
+						t_times.append(Elapsed)
+						bill.append(current_data)
+						Client.replace("ack_num",x)
+						x += 1
+						z += 1
+						UPS.append(str(Client))
+					
+					print("\n")
+					print("This is the shipment we got from the server")
+					print(bill) 
 		
-		if debug:	
-			print("this is y")
-			print(y)
-			print(" this is x")
-			print(x)
-		for i in UPS:
-			if t == 0 and i == UPS[-2]:# It works server sends packets again
-				time.sleep(1)
-				t += 1
-				pass
-			clientSocket.sendto(str(i).encode(),(serverName,dest_port_num))
-		clientSocket.sendto(str(None).encode(),(serverName,dest_port_num))
-		UPS = []
-		bill = []
+					if bill[0] < finish_data and not resend:
+			
+						print("We didn't send the acks in time")
+						resend =True
+						UPS = []
+						for e in bill:
+							Client.replace("ack_num",e)
+							UPS.append(str(Client))
+						x -= len(bill)
+		
+	
+					finish_data = Client.steal_a_part("seq_num",True,True)
+					bill = []
+					y += z #for getting the right seq_num from packets
+					z = 0
+		
+					for i in UPS:
+						if t == 6 and i == UPS[-2]:# It works server sends packets again
+							time.sleep(1)
+							t += 1
+							pass
+						clientSocket.sendto(str(i).encode(),(serverName,dest_port_num))
+
+					clientSocket.sendto(str(None).encode(),(serverName,dest_port_num))
+					print("Time it took")
+					print(t_times)
+					
+				
+					
+				
 
 	if debug:
 		print("what now?")
