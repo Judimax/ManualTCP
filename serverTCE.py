@@ -22,9 +22,21 @@ def slow_start(num,exp): #function for congestion
 
 def checkequal(lst):
 	return lst[1:] == lst[:-1]
+
+def try_list(*args):
+	for i in range(len(args)):
+		try:
+			args[i][-2]
+			try:
+				args[i][-2][0]
+				return args[i][-2]
+			except:
+				return args[i]
+		except:
+			pass
 try:
 
-    source_port_num = 9997 #port number router will be receiving from
+    source_port_num = 8997 #port number router will be receiving from
     serverSocket = socket(AF_INET, SOCK_DGRAM) #handshake and connection type
     serverSocket.bind(('',source_port_num))
     print("The server is ready to receive")
@@ -111,28 +123,34 @@ while True:
 	all_pkgs = []
 	Server.replace("ack_num",0)
 	if debug:
-		print("here")
-	while cong_wdw != 32:	
-		
+		print(here)#
+	while cong_wdw != 33:	
+		print("\n")
+		print("all_pkgs ...receiving")
 		print(all_pkgs)
 		if debug:
 			pass
-		print("This is the bill")
+		print("This is the bill, acks we got from the server")
 		print(bill)
+		print(resend)
 		print(Server.steal_a_part("ack_num",True,True))
 		
-		if len(bill)!= 1 and checkequal(all_pkgs[-1]) and not resend:
+		if len(bill)> 1 and checkequal(all_pkgs[-1]) or resend:
 			print("The sequennce did not get to the client in time")
-			resend = True
+			resend = False
 			print(all_pkgs)
-			for i in all_pkgs[-2]:
-				Server.replace("seq_num",i)
-				re_ack = Server
-				print(re_ack)
+			print(bill)
+			re_ack = Server
+			for i in try_list(all_pkgs,[1,2]):
+				print(i)
+				re_ack.headtr = None
+				re_ack.replace("seq_num",i)
 				serverSocket.sendto(str(re_ack).encode(),clientaddr)
 			serverSocket.sendto(str(None).encode(),clientaddr)
 			bill = []
-			while True:
+			pass
+			"""while True:
+				print("they should be sending different acks")
 				output, clientaddr = serverSocket.recvfrom(2048)
 				if output == "None":
 					break
@@ -141,9 +159,9 @@ while True:
 				msing_ack = Server.steal_a_part("ack_num",True,True)
 				bill.append(msing_ack)
 				print(Server.steal_a_part("ack_num",True))
+			all_pkgs.append(bill)"""
 
 		else:
-			print("\n")
 			print("sending as normal")	
 			resend= False
 			bill = []
@@ -164,7 +182,9 @@ while True:
 						UPS.append(str(Server))
    	        				packets_sent += 1
 					else:
-						break	
+						break
+				print("amnt of packets sent")
+				print(packets_sent)	
 	
 			if packets_sent == cong_wdw or total_packets_sent >=31 or resend or len(UPS) != 0:
 				resend = False
@@ -172,7 +192,7 @@ while True:
 				packets_sent = 0
 				for i in UPS:
 					if total_packets_sent == 2:
-						time.sleep(4) 			      
+						time.sleep(2.1) 			      
 					Sent = time.time()
 					serverSocket.sendto(str(i).encode(),clientaddr)
 				serverSocket.sendto(str(None).encode(),clientaddr)
@@ -191,8 +211,12 @@ while True:
 					current_data = Server.steal_a_part('ack_num',True,True)
 					bill.append(current_data)
 					print(Elasped)
-					print(Server.steal_a_part('ack_num',True))			
-				all_pkgs.append(bill)			
+					print(Server.steal_a_part('ack_num',True))
+				#print("This is what we got as the bill")
+				#print(bill)			
+				all_pkgs.append(bill)
+				#print("did it go in the right box?")
+				#print(all_pkgs)			
 	if debug:
 		print("Got out I should be getting something  right?")
 		#print(Server)
