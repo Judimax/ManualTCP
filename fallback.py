@@ -197,6 +197,7 @@ if __name__ == "__main__":
 	Client.insert_packet(impt_field,impt_value)
 	finish_data = 0
 	bill = []
+	all_pkgs = []
 	resend = False
 	missing_note = False
 	repack = False
@@ -226,6 +227,7 @@ if __name__ == "__main__":
 							clientSocket.sendto(str(UPS[i]).encode(),(serverName,dest_port_num))
 						clientSocket.sendto(str(None).encode(),(serverName,dest_port_num))
 						bill =[]
+						
 						while True:
 							message,serveraddr = clientSocket.recvfrom(2048)
 							Received = time.time()
@@ -236,17 +238,19 @@ if __name__ == "__main__":
 							Client.headtr = None
 							Client.insert(message)
 							bill.append(Client.steal_a_part("seq_num",True,True))
+						#all_pkgs.append(bill)
 						
 					
 					print("These are the resent times")
 					print(t_times)					
 					print("this is the resent package we got")
 					print(bill)
+					bill = []
 		  			break
 				else:
 					if not missing_note:
 						UPS = []
-					t_times = []
+						t_times = []
 					resend = False
 					bill = []
 					Start = time.time()
@@ -256,6 +260,7 @@ if __name__ == "__main__":
 						print("here")
 						print(missing_note)
 						while not missing_note:
+						
 							message, serveraddr = clientSocket.recvfrom(2048)
 							Received = time.time()	
 								
@@ -267,18 +272,20 @@ if __name__ == "__main__":
 							Elapsed = Received - Start
 							t_times.append(Elapsed)
 							bill.append(current_data)
-							Client.replace("ack_num",x)
+							#Client.replace("ack,num",x)
+							Client.replace("ack_num",current_data)
 							x += 1
 							z += 1
 							UPS.append(str(Client))
 						
 						if not missing_note:
+						
 							print(t_times)
 							print("\n")
 							print("This is the shipment we got from the server")
 							print(bill) 
 							saved_bill = bill
-
+						
 						print("What im checking against, it shld be refereshed")
 						print(t_times)
 						for i in try_list(t_times,[1,1]):
@@ -290,39 +297,50 @@ if __name__ == "__main__":
 								finish_data = Client.steal_a_part("seq_num",True,True)
 								print("This is what were checking")
 								print(saved_bill)
-								print("Shld be great than saved_bill[0] every time")
-								print(finish_data)
-								if try_list(saved_bill,[finish_data])[0] > finish_data and not resend:
-				
-									print("We didn't send the acks in time")
-									resend =True
-									UPS = []
-									for e in bill:
-										Client.replace("ack_num",e)
-										UPS.append(str(Client))
-									x -= len(bill)
-		
-		
-								#finish_data = Client.steal_a_part("seq_num",True,True)
+								#print("Shld be great than saved_bill[0] every time")
+								#print(finish_data)
+								print("Check is there is a connection with all_pkgs")
+								print(all_pkgs)
+	
+								#if try_list(saved_bill,[finish_data])[0] > finish_data and not resend:
+								try:
+									if all_pkgs[-1][0] == saved_bill[0] and not resend:
+										print("We didn't send the acks in time")
+										resend =True
+										UPS = []
+										for e in saved_bill:
+											Client.replace("ack_num",e)
+											UPS.append(str(Client))
+										x -= len(bill)
+					
+										
+								except:
+									pass
 								
+								#finish_data = Client.steal_a_part("seq_num",True,True)
+								all_pkgs.append(saved_bill)
 								
 								bill = []
 								y += z #for getting the right seq_num from packets
 								z = 0
+								t+= 1
 								for i in UPS:
-								
-									if t == 6 and i == UPS[-2]:# It works server sends packets again
-										time.sleep(1)
-										t += 1
+									print(t)
+									if t == 2 and i == UPS[-2]:# It works server sends packets again
+										time.sleep(6)
+										
 										pass
 									clientSocket.sendto(str(i).encode(),(serverName,dest_port_num))
 								clientSocket.sendto(str(None).encode(),(serverName,dest_port_num))
 								break
 						print("This is what we sent")
-						print(len(UPS))
+						if not repack:
+							print(len(UPS))
+						else:
+							print(0)
 						missing_note = False
 						print("Time it took")
-						#print(t_times)
+						print(t_times)
 					
 					
 				
